@@ -1,14 +1,14 @@
 ##-- Import Classes --##
-from Hospital import Hospital
-from Wholesaler import Wholesaler
-from Manufacturer import Manufacturer
+from Consumer import Consumer
+from Transhipper import Transhipper
+from Producer import Producer
 
 
 ##-- Class --##
 class Simulation():
 
     ## Initialization
-    def __init__(self, sim_periods, hospitals, wholesalers, manufacturers, disruption_function, change_decision_policies):
+    def __init__(self, sim_periods, consumers, transhippers, producers, disruption_function, change_decision_policies):
 
         ## SUPPLY CHAIN SETUP
         # ASSUMPTIONS:
@@ -17,9 +17,9 @@ class Simulation():
 
         # Agent initialization
         self.sim_periods = sim_periods  # Number of periods that the simulation runs for
-        self.hospitals = hospitals
-        self.wholesalers = wholesalers
-        self.manufacturers = manufacturers
+        self.consumers = consumers
+        self.transhippers = transhippers
+        self.producers = producers
 
         # Changes that can occur mid simulation
         self.disruption_function = disruption_function
@@ -27,12 +27,12 @@ class Simulation():
 
         ## PARAMETERS
         # Set sizes
-        self.n_hospitals = len(self.hospitals)
-        self.n_wholesalers = len(self.wholesalers)
-        self.n_manufacturers = len(self.manufacturers)
+        self.n_consumers = len(self.consumers)
+        self.n_transhippers = len(self.transhippers)
+        self.n_producers = len(self.producers)
 
         # Initialization of necessary parameters
-        self.original_production_max = [self.manufacturers[i].production_max for i in range(self.n_manufacturers)]  # Needed for disruption
+        self.original_production_max = [self.producers[i].production_max for i in range(self.n_producers)]  # Needed for disruption
 
 
     ## Functions
@@ -57,85 +57,85 @@ class Simulation():
             self.enable_disruption(t)
 
 
-            ## 2. Hospital Actions
-            # Hospitals receive shipments in groups by wholesaler
-            for w in range(self.n_wholesalers):
-                wholesaler = self.wholesalers[w] # Wholesaler info
-                shipments = wholesaler.deliver_shipments()  # For hospital shipment deliveries
+            ## 2. Consumer Actions
+            # Consumers receive shipments in groups by transhipper
+            for w in range(self.n_transhippers):
+                transhipper = self.transhippers[w] # Transhipper info
+                shipments = transhipper.deliver_shipments()  # For consumer shipment deliveries
 
-                for h in wholesaler.customers:
-                    # Hospital receives shipment (wholesaler delivers it)
-                    h_idx = wholesaler.customers.index(h)
-                    self.hospitals[h].receive_shipment(shipments[h_idx], wholesaler, w)  # Need wholesaler argument to get lead time
+                for c in transhipper.customers:
+                    # Consumer receives shipment (transhipper delivers it)
+                    c_idx = transhipper.customers.index(c)
+                    self.consumers[c].receive_shipment(shipments[c_idx], transhipper, w)  # Need transhipper argument to get lead time
 
-            # Then hospitals take their own actions one at a time
-            for h in range(self.n_hospitals):
+            # Then consumers take their own actions one at a time
+            for c in range(self.n_consumers):
 
-                # Hospital observes demand
-                self.hospitals[h].observe_demand()
+                # Consumer observes demand
+                self.consumers[c].observe_demand()
 
-                # Hospital serves demand
-                self.hospitals[h].serve_demand()
+                # Consumer serves demand
+                self.consumers[c].serve_demand()
 
-                # Hospital determines order amounts for all suppliers
-                orders_for_wholesalers = self.hospitals[h].determine_orders(self.wholesalers)  
+                # Consumer determines order amounts for all suppliers
+                orders_for_transhippers = self.consumers[c].determine_orders(self.transhippers)  
 
-                # Hospitals submit orders to its suppliers
-                for w in self.hospitals[h].suppliers:
-                    w_idx = self.hospitals[h].suppliers.index(w)
-                    # Wholesaler received order here
-                    self.wholesalers[w].receive_order(orders_for_wholesalers[w_idx], h)
+                # Consumers submit orders to its suppliers
+                for w in self.consumers[c].suppliers:
+                    w_idx = self.consumers[c].suppliers.index(w)
+                    # Transhipper received order here
+                    self.transhippers[w].receive_order(orders_for_transhippers[w_idx], c)
 
 
-            ## 3. Wholesaler Actions
-            ## Wholesalers receive shipments in groups by manufacturer
-            for m in range(self.n_manufacturers):
-                manufacturer = self.manufacturers[m] # Wholesaler info
-                shipments = manufacturer.deliver_shipments()
+            ## 3. Transhipper Actions
+            ## Transhippers receive shipments in groups by producer
+            for m in range(self.n_producers):
+                producer = self.producers[m] # Producer info
+                shipments = producer.deliver_shipments()
 
-                for w in manufacturer.customers:
-                    # Wholesaler receives shipment (manufacturer delivers it)
-                    w_idx = manufacturer.customers.index(w)
-                    self.wholesalers[w].receive_shipment(shipments[w_idx], manufacturer, m)
+                for w in producer.customers:
+                    # Transhipper receives shipment (producer delivers it)
+                    w_idx = producer.customers.index(w)
+                    self.transhippers[w].receive_shipment(shipments[w_idx], producer, m)
 
-            # Then wholesalers take their own actions one at a time
-            for w in range(self.n_wholesalers):
+            # Then transhippers take their own actions one at a time
+            for w in range(self.n_transhippers):
                     
-                # Wholesaler makes allocation decision
-                self.wholesalers[w].allocation_decision()
+                # Transhipper makes allocation decision
+                self.transhippers[w].allocation_decision()
 
-                # Wholesaler observes the backlog (if any)
-                self.wholesalers[w].observe_backlog()
+                # Transhipper observes the backlog (if any)
+                self.transhippers[w].observe_backlog()
 
-                # Wholesaler sends shipments into transit
-                self.wholesalers[w].send_shipments()
+                # Transhipper sends shipments into transit
+                self.transhippers[w].send_shipments()
 
-                # Wholesalers determine order amounds for all suppliers
-                orders_for_manufacturers = self.wholesalers[w].determine_orders(self.manufacturers) 
+                # Transhippers determine order amounds for all suppliers
+                orders_for_producers = self.transhippers[w].determine_orders(self.producers) 
 
-                # Wholesaler submits orders to manufacturers
-                for m in self.wholesalers[w].suppliers:
-                    m_idx = self.wholesalers[w].suppliers.index(m)
-                    # Wholesaler received order here
-                    self.manufacturers[m].receive_order(orders_for_manufacturers[m_idx], w)
+                # Transhipper submits orders to producers
+                for m in self.transhippers[w].suppliers:
+                    m_idx = self.transhippers[w].suppliers.index(m)
+                    # Transhipper received order here
+                    self.producers[m].receive_order(orders_for_producers[m_idx], w)
 
-            ## 4. Manufacturer Actions
-            for m in range(self.n_manufacturers):
+            ## 4. Producer Actions
+            for m in range(self.n_producers):
 
-                # Manufacturer observes production (after lead time)
-                self.manufacturers[m].observe_production()
+                # Producer observes production (after lead time)
+                self.producers[m].observe_production()
 
-                # Manufacturer decides allocation to wholesalers
-                self.manufacturers[m].allocation_decision()
+                # Producer decides allocation to transhippers
+                self.producers[m].allocation_decision()
 
-                # Manufacturer observes backlog
-                self.manufacturers[m].observe_backlog()
+                # Producer observes backlog
+                self.producers[m].observe_backlog()
 
-                # Manufacturer sends shipments (adds to shipment queue)
-                self.manufacturers[m].send_shipments()
+                # Producer sends shipments (adds to shipment queue)
+                self.producers[m].send_shipments()
 
-                # Manufacturer decides next production amount
-                self.manufacturers[m].production_decision()
+                # Producer decides next production amount
+                self.producers[m].production_decision()
             
 
             print(f"Period: {t+1} done.")
