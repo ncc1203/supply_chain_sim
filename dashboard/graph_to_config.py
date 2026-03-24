@@ -222,15 +222,21 @@ def build_simulation_from_graph(elements, sim_periods, disruptions=None):
 
         def make_disruption_fn(disruption_list, label_map):
             def disruption_function(sim_self, t):
-                for d in disruption_list:
-                    p_idx = label_map.get(d.get("producer_label"))
-                    if p_idx is None:
-                        continue
-                    if t == d["start"]:
+                # For each producer, find all currently active disruptions
+                # and apply the most restrictive (minimum severity).
+                # This correctly handles overlapping disruptions on the same producer.
+                for p_label, p_idx in label_map.items():
+                    active_severities = [
+                        d["severity"] for d in disruption_list
+                        if d.get("producer_label") == p_label
+                        and d["start"] <= t < d["end"]
+                    ]
+                    if active_severities:
+                        effective_severity = min(active_severities)
                         sim_self.producers[p_idx].production_max = (
-                            sim_self.original_production_max[p_idx] * d["severity"]
+                            sim_self.original_production_max[p_idx] * effective_severity
                         )
-                    if t == d["end"]:
+                    else:
                         sim_self.producers[p_idx].production_max = (
                             sim_self.original_production_max[p_idx]
                         )
