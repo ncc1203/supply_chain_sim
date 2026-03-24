@@ -150,7 +150,7 @@ Model capacity disruptions on manufacturers:
    - **Producer** — which manufacturer to disrupt (by label, e.g., "MN1")
    - **Start Period** — when the disruption begins
    - **End Period** — when normal capacity resumes
-   - **Severity** — fraction of normal capacity during disruption (0.2 = 20% of normal)
+   - **Remaining Capacity** — fraction of normal capacity during disruption (0.2 = 20% of normal, lower = more severe)
 3. Click **Run Simulation** to execute
 
 Multiple disruptions can target different manufacturers or different time periods.
@@ -168,6 +168,32 @@ After running a simulation, five charts are displayed:
 If disruptions were configured, they appear as **shaded red regions** on all charts.
 
 - **Download Results (Excel)** — exports all data to an `.xlsx` file for further analysis
+
+### Tab 4: Sensitivity Analysis
+
+Run multiple simulations to measure variability or test parameter sensitivity.
+
+#### Stochastic Replication Mode
+
+Same network parameters, different random seeds. Measures natural variability from demand stochasticity.
+
+- **Number of runs** — how many simulations to execute (default: 20)
+- **Periods per run** — time steps per simulation (default: 200)
+- **Starting seed** — for reproducibility (same seed = same results)
+
+Results show **fan charts** with median lines and shaded 5th–95th / 25th–75th percentile confidence bands for inventory, fulfillment rate, and production. A **box plot** shows the distribution of final-period values across runs.
+
+#### Parameter Sweep Mode
+
+Vary one parameter across a range while keeping everything else fixed.
+
+- **Parameter to sweep** — choose from: Demand Mean, Demand Std Dev, Safety Stock, Lead Time, Production Capacity, Production Lead Time, Disruption Severity
+- **Apply to agent** — target all applicable agents or a specific one
+- **Range** — min value, max value, and number of steps
+
+Results show **sweep line charts** plotting the chosen parameter value (x-axis) against final-period metrics (y-axis) with error bars showing standard deviation across replications.
+
+- **Download MC Results (Excel)** — exports summary statistics and individual run data (up to 20 sheets)
 
 ---
 
@@ -214,16 +240,21 @@ supply_chain_sim/
 │   │   ├── __init__.py
 │   │   ├── constants.py       # Colors, defaults, preset networks
 │   │   ├── policy_registry.py # Maps policy names → function objects
-│   │   ├── layout.py          # Dash layout (3 tabs, Cytoscape canvas)
+│   │   ├── layout.py          # Dash layout (4 tabs, Cytoscape canvas)
 │   │   ├── callbacks_network.py     # Network builder callbacks
 │   │   ├── callbacks_simulation.py  # Run simulation + results charts
 │   │   ├── callbacks_disruption.py  # Disruption event UI callbacks
+│   │   ├── callbacks_monte_carlo.py # Sensitivity analysis callbacks + charts
+│   │   ├── monte_carlo.py          # MC engine (replication + sweep)
 │   │   └── graph_to_config.py       # Translates visual graph → Simulation objects
 │   └── assets/
 │       └── style.css          # Dashboard styling
 │
 ├── Tests
-│   └── test_graph_to_config.py  # Automated tests (9 tests)
+│   ├── tests/conftest.py            # Shared pytest fixtures
+│   ├── tests/test_graph_to_config.py  # Graph translation tests (24 tests)
+│   ├── tests/test_disruptions.py      # Disruption mechanics tests (15 tests)
+│   └── tests/test_monte_carlo.py      # Monte Carlo engine tests (16 tests)
 │
 ├── .gitignore
 └── README.md
@@ -237,26 +268,39 @@ The dashboard wraps the existing simulation engine without modifying any core fi
 
 ## Testing
 
-Run the automated test suite:
+Run the automated test suite (55 tests):
 
 ```bash
 pip install pytest
-python -m pytest test_graph_to_config.py -v
+python -m pytest tests/ -v
 ```
 
-The tests verify:
+### Test coverage by module:
 
-| # | Test | What it checks |
-|---|------|----------------|
-| 1 | `test_index_translation` | Graph → index arrays match `main.py` reference exactly |
-| 2 | `test_simulation_builds_and_runs` | Simulation completes without errors |
-| 3 | `test_starter_preset` | Starter preset network builds and runs |
-| 4 | `test_edge_validation` | Invalid networks (no connections) are rejected |
-| 5 | `test_parameter_passthrough` | Custom parameters reach simulation objects |
-| 6 | `test_policy_selection` | Policy dropdown names map to correct functions |
-| 7 | `test_disruption_passthrough` | Disruptions modify producer capacity at correct periods |
-| 8 | `test_get_full_results` | Results extraction covers all agent types |
-| 9 | `test_main_py_preset` | Full main.py network builds with correct wiring |
+**`tests/test_graph_to_config.py`** — Graph translation & simulation building (24 tests)
+- Index translation matches main.py reference exactly (4 tests)
+- Simulation building and agent counts (5 tests)
+- Parameter passthrough — custom values reach simulation objects (5 tests)
+- Policy selection — dropdown names map to correct functions (3 tests)
+- Edge validation — invalid networks rejected (3 tests)
+- Results extraction — DataFrame has expected columns (4 tests)
+
+**`tests/test_disruptions.py`** — Disruption mechanics (15 tests)
+- Single disruption reduces capacity and recovers correctly
+- Severity ordering: 0.2 produces LESS than 0.4 (lower = more severe)
+- Parametrized test across 6 severity values
+- Overlapping disruptions on same producer → minimum severity wins
+- First disruption ending doesn't cancel a still-active second disruption
+- Sequential (non-overlapping) disruptions each apply correctly
+- Different producers disrupted independently
+
+**`tests/test_monte_carlo.py`** — Monte Carlo engine (16 tests)
+- Single sim: reproducibility (same seed = same results), variability (different seeds ≠ same results)
+- Stochastic replication: correct structure, summary statistics, variability detection
+- Parameter sweep: correct structure, sweep values in summary, demand changes affect results
+- Sweep value application: modifies correct agents, leaves others unchanged
+- Agent dropdown population based on parameter type
+- Excel export produces valid file
 
 ---
 
