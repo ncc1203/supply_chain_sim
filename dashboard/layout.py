@@ -285,7 +285,8 @@ def build_sim_config_tab():
                     html.H4("Disruption Events"),
                     html.P(
                         "Define capacity disruptions for manufacturers. "
-                        "Severity 0.2 means production drops to 20% of normal.",
+                        "Remaining Capacity is a fraction of normal output: "
+                        "0.2 = production drops to 20% of normal (lower = more severe).",
                         style={"fontSize": "13px", "color": "#666", "margin": "0 0 12px 0"},
                     ),
                     html.Div(id="disruption-rows", children=[]),
@@ -384,6 +385,208 @@ def build_results_tab():
     )
 
 
+def build_sensitivity_tab():
+    """Sensitivity Analysis tab with Monte Carlo configuration and results."""
+    from dashboard.monte_carlo import get_sweep_param_options
+
+    return html.Div(
+        className="sim-config-tab",
+        children=[
+            html.H4("Sensitivity Analysis"),
+            html.P(
+                "Run multiple simulations to measure variability or test how "
+                "changing a parameter affects outcomes.",
+                style={"fontSize": "13px", "color": "#666", "margin": "0 0 16px 0"},
+            ),
+
+            # ── Mode selection ──────────────────────────────────────────
+            html.Div(
+                className="config-section",
+                children=[
+                    html.H5("Analysis Mode"),
+                    dcc.RadioItems(
+                        id="mc-mode",
+                        options=[
+                            {"label": "Stochastic Replication — same parameters, different random seeds",
+                             "value": "replication"},
+                            {"label": "Parameter Sweep — vary one parameter across a range",
+                             "value": "sweep"},
+                        ],
+                        value="replication",
+                        style={"fontSize": "13px"},
+                        inputStyle={"marginRight": "6px"},
+                        labelStyle={"display": "block", "marginBottom": "8px"},
+                    ),
+                ],
+            ),
+
+            # ── Common settings ─────────────────────────────────────────
+            html.Div(
+                className="config-section",
+                children=[
+                    html.H5("Common Settings"),
+                    html.Div(
+                        className="config-row",
+                        style={"flexWrap": "wrap", "gap": "16px"},
+                        children=[
+                            html.Div([
+                                html.Label("Number of runs:"),
+                                dcc.Input(
+                                    id="mc-n-runs", type="number",
+                                    value=20, min=2, max=500, step=1,
+                                    className="config-input",
+                                ),
+                            ]),
+                            html.Div([
+                                html.Label("Periods per run:"),
+                                dcc.Input(
+                                    id="mc-periods", type="number",
+                                    value=200, min=10, max=2000, step=10,
+                                    className="config-input",
+                                ),
+                            ]),
+                            html.Div([
+                                html.Label("Starting seed (for reproducibility):"),
+                                dcc.Input(
+                                    id="mc-seed", type="number",
+                                    value=0, min=0, step=1,
+                                    className="config-input",
+                                ),
+                            ]),
+                        ],
+                    ),
+                ],
+            ),
+
+            # ── Parameter sweep settings (shown only in sweep mode) ─────
+            html.Div(
+                id="mc-sweep-settings",
+                className="config-section",
+                style={"display": "none"},
+                children=[
+                    html.H5("Parameter Sweep Settings"),
+                    html.Div(
+                        className="config-row",
+                        style={"flexWrap": "wrap", "gap": "16px"},
+                        children=[
+                            html.Div([
+                                html.Label("Parameter to sweep:"),
+                                dcc.Dropdown(
+                                    id="mc-sweep-param",
+                                    options=[{"label": p, "value": p} for p in get_sweep_param_options()],
+                                    value="Demand Mean (d)",
+                                    clearable=False,
+                                    style={"width": "220px", "fontSize": "13px"},
+                                ),
+                            ]),
+                            html.Div([
+                                html.Label("Apply to agent:"),
+                                dcc.Dropdown(
+                                    id="mc-sweep-agent",
+                                    options=[{"label": "All applicable agents", "value": "__all__"}],
+                                    value="__all__",
+                                    clearable=False,
+                                    style={"width": "200px", "fontSize": "13px"},
+                                ),
+                            ]),
+                        ],
+                    ),
+                    html.Div(
+                        className="config-row",
+                        style={"marginTop": "10px", "gap": "16px"},
+                        children=[
+                            html.Div([
+                                html.Label("Min value:"),
+                                dcc.Input(
+                                    id="mc-sweep-min", type="number",
+                                    value=50, className="config-input",
+                                ),
+                            ]),
+                            html.Div([
+                                html.Label("Max value:"),
+                                dcc.Input(
+                                    id="mc-sweep-max", type="number",
+                                    value=300, className="config-input",
+                                ),
+                            ]),
+                            html.Div([
+                                html.Label("Steps:"),
+                                dcc.Input(
+                                    id="mc-sweep-steps", type="number",
+                                    value=5, min=2, max=20, step=1,
+                                    className="config-input",
+                                ),
+                            ]),
+                        ],
+                    ),
+                ],
+            ),
+
+            # ── Run button ──────────────────────────────────────────────
+            html.Div(
+                style={"marginTop": "20px"},
+                children=[
+                    html.Button(
+                        "Run Analysis",
+                        id="btn-run-mc",
+                        n_clicks=0,
+                        className="run-button",
+                    ),
+                    dcc.Loading(
+                        id="loading-mc",
+                        type="default",
+                        children=[html.Div(id="mc-status", className="status-bar")],
+                    ),
+                ],
+            ),
+
+            # ── Results area ────────────────────────────────────────────
+            html.Div(
+                id="mc-results-container",
+                style={"display": "none", "marginTop": "20px"},
+                children=[
+                    # Fan / confidence band charts
+                    html.Div(className="chart-section", children=[
+                        html.H5("Inventory — Confidence Bands"),
+                        dcc.Graph(id="mc-graph-inventory"),
+                    ]),
+                    html.Div(className="chart-section", children=[
+                        html.H5("Fulfillment Rate — Confidence Bands"),
+                        dcc.Graph(id="mc-graph-fulfillment"),
+                    ]),
+                    html.Div(className="chart-section", children=[
+                        html.H5("Production — Confidence Bands"),
+                        dcc.Graph(id="mc-graph-production"),
+                    ]),
+                    # Box plot for final-period distribution
+                    html.Div(className="chart-section", children=[
+                        html.H5("Final-Period Distribution"),
+                        dcc.Graph(id="mc-graph-boxplot"),
+                    ]),
+                ],
+            ),
+
+            # ── Download ────────────────────────────────────────────────
+            html.Div(
+                style={"marginTop": "12px"},
+                children=[
+                    html.Button(
+                        "Download MC Results (Excel)",
+                        id="btn-download-mc",
+                        n_clicks=0,
+                        className="download-button",
+                        style={"display": "none"},
+                    ),
+                    dcc.Download(id="download-mc-results"),
+                ],
+            ),
+
+            # Stores
+            dcc.Store(id="store-mc-results"),
+        ],
+    )
+
+
 def build_layout():
     """Build the complete app layout."""
     return html.Div(
@@ -405,6 +608,7 @@ def build_layout():
                     dcc.Tab(label="Network Builder", value="tab-network", children=[build_network_tab()]),
                     dcc.Tab(label="Simulation Config", value="tab-config", children=[build_sim_config_tab()]),
                     dcc.Tab(label="Results", value="tab-results", children=[build_results_tab()]),
+                    dcc.Tab(label="Sensitivity Analysis", value="tab-mc", children=[build_sensitivity_tab()]),
                 ],
             ),
         ],

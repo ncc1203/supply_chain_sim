@@ -50,13 +50,14 @@ def _render_disruption_row(idx, data=None):
                 ),
             ]),
             html.Div([
-                html.Label("Severity", style={"fontSize": "11px", "display": "block"}),
+                html.Label("Remaining Capacity", style={"fontSize": "11px", "display": "block"}),
                 dcc.Input(
                     id={"type": "disruption-severity", "index": idx},
                     type="number",
                     value=data.get("severity", 0.2),
                     min=0, max=1, step=0.05,
                     style={"width": "60px", "padding": "4px", "fontSize": "13px"},
+                    placeholder="0-1",
                 ),
             ]),
             html.Button(
