@@ -15,6 +15,7 @@ from dashboard.layout import build_layout
 from dashboard.callbacks_network import register_network_callbacks
 from dashboard.callbacks_simulation import register_simulation_callbacks
 from dashboard.callbacks_disruption import register_disruption_callbacks
+from dashboard.callbacks_monte_carlo import register_monte_carlo_callbacks
 
 
 # ── Create app ───────────────────────────────────────────────────────────────
@@ -31,6 +32,7 @@ app.layout = build_layout()
 register_network_callbacks(app)
 register_simulation_callbacks(app)
 register_disruption_callbacks(app)
+register_monte_carlo_callbacks(app)
 
 
 # ── Run ──────────────────────────────────────────────────────────────────────
