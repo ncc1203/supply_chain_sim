@@ -37,4 +37,6 @@ register_monte_carlo_callbacks(app)
 
 # ── Run ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    app.run(debug=True)
+    import os
+    port = int(os.environ.get("PORT", 8050))
+    app.run(debug=("RENDER" not in os.environ), host="0.0.0.0", port=port)
