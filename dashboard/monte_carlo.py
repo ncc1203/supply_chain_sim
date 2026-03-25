@@ -303,9 +303,13 @@ def _aggregate_sweep(all_dfs, sweep_values, sweep_run_indices):
 
         for metric in metrics:
             final_values = [df[metric].iloc[-1] for df in batch_dfs if metric in df.columns]
+            min_values = [df[metric].min() for df in batch_dfs if metric in df.columns]
+            mean_values = [df[metric].mean() for df in batch_dfs if metric in df.columns]
             if final_values:
                 row[f"{metric} (mean)"] = np.mean(final_values)
                 row[f"{metric} (std)"] = np.std(final_values)
+                row[f"{metric} (min)"] = np.mean(min_values)
+                row[f"{metric} (avg)"] = np.mean(mean_values)
 
         rows.append(row)
 

@@ -93,49 +93,44 @@ def _make_fan_chart(mc_summary, metric_suffix, title, yaxis_title):
 
 def _make_sweep_chart(mc_results, metric_suffix, title, yaxis_title):
     """
-    Build a sweep line chart: X = sweep parameter value, Y = mean final-period metric.
+    Build a sweep line chart: X = sweep parameter value, Y = metric aggregates.
+    Shows three lines per agent: final-period mean (solid), worst-case min (dashed),
+    and overall average (dotted).
     """
     fig = go.Figure()
     summary = mc_results["summary"]
     sweep_values = mc_results["sweep_values"]
 
-    # Find columns matching the suffix
+    # Find columns matching the suffix for each aggregate type
     mean_cols = [c for c in summary.columns if metric_suffix in c and "(mean)" in c]
-    std_cols = [c for c in summary.columns if metric_suffix in c and "(std)" in c]
 
     colors = [
         "#C8102E", "#6C8EBF", "#C8A978", "#4CAF50", "#9C27B0",
         "#FF9800", "#00BCD4", "#795548",
     ]
 
-    for idx, mean_col in enumerate(sorted(mean_cols)):
-        color = colors[idx % len(colors)]
-        name = mean_col.replace(metric_suffix, "").replace("(mean)", "").strip()
-        y_vals = summary[mean_col].values
+    # Use avg (mean across all periods) for a cleaner single line per agent
+    avg_cols = [c for c in summary.columns if metric_suffix in c and "(avg)" in c]
+    # Fall back to final-period mean if avg not available
+    if not avg_cols:
+        avg_cols = mean_cols
 
-        # Find corresponding std col
-        std_col = mean_col.replace("(mean)", "(std)")
-        if std_col in summary.columns:
-            y_err = summary[std_col].values
-            fig.add_trace(go.Scatter(
-                x=sweep_values, y=y_vals,
-                error_y=dict(type="data", array=y_err, visible=True),
-                mode="lines+markers",
-                line=dict(color=color),
-                name=name,
-            ))
-        else:
-            fig.add_trace(go.Scatter(
-                x=sweep_values, y=y_vals,
-                mode="lines+markers",
-                line=dict(color=color),
-                name=name,
-            ))
+    for idx, col in enumerate(sorted(avg_cols)):
+        color = colors[idx % len(colors)]
+        name = col.replace(metric_suffix, "").replace("(avg)", "").replace("(mean)", "").strip()
+        y_vals = summary[col].values
+
+        fig.add_trace(go.Scatter(
+            x=sweep_values, y=y_vals,
+            mode="lines+markers",
+            line=dict(color=color, width=2),
+            name=name,
+        ))
 
     fig.update_layout(
         title=title,
         xaxis_title=mc_results.get("sweep_param", "Parameter Value"),
-        yaxis_title=f"Final-Period {yaxis_title} (mean ± std)",
+        yaxis_title=f"Average {yaxis_title}",
         template=CHART_TEMPLATE,
         hovermode="x unified",
         margin=dict(t=40, b=40),
