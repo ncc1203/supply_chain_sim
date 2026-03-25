@@ -499,14 +499,16 @@ def build_sensitivity_tab():
                                 html.Label("Min value:"),
                                 dcc.Input(
                                     id="mc-sweep-min", type="number",
-                                    value=50, className="config-input",
+                                    value=None, placeholder="Select parameter...",
+                                    className="config-input",
                                 ),
                             ]),
                             html.Div([
                                 html.Label("Max value:"),
                                 dcc.Input(
                                     id="mc-sweep-max", type="number",
-                                    value=300, className="config-input",
+                                    value=None, placeholder="Select parameter...",
+                                    className="config-input",
                                 ),
                             ]),
                             html.Div([

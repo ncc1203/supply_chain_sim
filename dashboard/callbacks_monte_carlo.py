@@ -11,6 +11,7 @@ from dash import Input, Output, State, callback, ctx, html, dcc, no_update
 from dashboard.monte_carlo import (
     run_monte_carlo,
     get_agents_for_param,
+    get_sweep_defaults,
     mc_results_to_excel,
     SWEEP_PARAMETERS,
 )
@@ -205,20 +206,36 @@ def register_monte_carlo_callbacks(app):
             return {"display": "block"}
         return {"display": "none"}
 
+    # ── Update min/max defaults when sweep parameter changes ────────────
+    @app.callback(
+        Output("mc-sweep-min", "value"),
+        Output("mc-sweep-max", "value"),
+        Input("mc-sweep-param", "value"),
+        prevent_initial_call=True,
+    )
+    def update_sweep_defaults_cb(param_name):
+        if not param_name:
+            return no_update, no_update
+        default_min, default_max = get_sweep_defaults(param_name)
+        return default_min, default_max
+
     # ── Populate agent dropdown based on sweep parameter ─────────────────
     @app.callback(
         Output("mc-sweep-agent", "options"),
         Output("mc-sweep-agent", "value"),
         Input("mc-sweep-param", "value"),
         State("cytoscape-graph", "elements"),
+        State("store-disruptions", "data"),
     )
-    def populate_agent_dropdown(param_name, elements):
+    def populate_agent_dropdown(param_name, elements, disruptions):
         if not param_name or not elements:
             return [{"label": "All applicable agents", "value": "__all__"}], "__all__"
 
-        agents = get_agents_for_param(elements, param_name)
+        agents = get_agents_for_param(elements, param_name, disruptions)
         options = [{"label": label, "value": aid} for label, aid in agents]
-        return options, "__all__"
+        # Default to first individual agent if available, otherwise __all__
+        default = agents[1][1] if len(agents) > 1 else "__all__"
+        return options, default
 
     # ── Run Monte Carlo analysis ─────────────────────────────────────────
     @app.callback(

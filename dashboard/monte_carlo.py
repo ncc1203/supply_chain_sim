@@ -24,14 +24,20 @@ from dashboard.graph_to_config import build_simulation_from_graph, get_full_resu
 # ── Sweepable parameter definitions ─────────────────────────────────────────
 
 SWEEP_PARAMETERS = {
-    "Demand Mean (d)": {"key": "d", "agent_types": ["consumer"], "dtype": float},
-    "Demand Std Dev (dstd)": {"key": "dstd", "agent_types": ["consumer"], "dtype": float},
-    "Safety Stock (ss)": {"key": "ss", "agent_types": ["consumer", "transhipper", "producer"], "dtype": float},
-    "Lead Time (l)": {"key": "l", "agent_types": ["transhipper", "producer"], "dtype": int},
-    "Production Capacity (m)": {"key": "m", "agent_types": ["producer"], "dtype": float},
-    "Production Lead Time (pl)": {"key": "pl", "agent_types": ["producer"], "dtype": int},
-    "Disruption Severity": {"key": "severity", "agent_types": [], "dtype": float},
+    "Demand Mean (d)": {"key": "d", "agent_types": ["consumer"], "dtype": float, "default_min": 50, "default_max": 500},
+    "Demand Std Dev (dstd)": {"key": "dstd", "agent_types": ["consumer"], "dtype": float, "default_min": 1, "default_max": 50},
+    "Safety Stock (ss)": {"key": "ss", "agent_types": ["consumer", "transhipper", "producer"], "dtype": float, "default_min": 500, "default_max": 15000},
+    "Lead Time (l)": {"key": "l", "agent_types": ["transhipper", "producer"], "dtype": int, "default_min": 1, "default_max": 10},
+    "Production Capacity (m)": {"key": "m", "agent_types": ["producer"], "dtype": float, "default_min": 200, "default_max": 2000},
+    "Production Lead Time (pl)": {"key": "pl", "agent_types": ["producer"], "dtype": int, "default_min": 1, "default_max": 10},
+    "Disruption Severity": {"key": "severity", "agent_types": [], "dtype": float, "default_min": 0.1, "default_max": 1.0},
 }
+
+
+def get_sweep_defaults(param_name):
+    """Return (default_min, default_max) for a sweep parameter."""
+    info = SWEEP_PARAMETERS.get(param_name, {})
+    return info.get("default_min", 50), info.get("default_max", 300)
 
 
 def get_sweep_param_options():
@@ -39,12 +45,23 @@ def get_sweep_param_options():
     return list(SWEEP_PARAMETERS.keys())
 
 
-def get_agents_for_param(elements, param_name):
+def get_agents_for_param(elements, param_name, disruptions=None):
     """Return list of (label, id) for agents that have this parameter."""
     param_info = SWEEP_PARAMETERS.get(param_name, {})
     agent_types = param_info.get("agent_types", [])
 
     agents = [("All applicable agents", "__all__")]
+
+    if param_name == "Disruption Severity":
+        # Show producers that have disruptions configured
+        seen = set()
+        for d in (disruptions or []):
+            label = d.get("producer_label", "")
+            if label and label not in seen:
+                seen.add(label)
+                agents.append((f"{label} disruptions", label))
+        return agents
+
     for el in elements:
         data = el.get("data", {})
         if "source" in data:
@@ -84,9 +101,10 @@ def _apply_sweep_value(elements, param_name, value, target_agent_id, disruptions
     param_info = SWEEP_PARAMETERS[param_name]
 
     if param_name == "Disruption Severity":
-        # Modify all disruption severities
+        # Modify disruption severities — all or only those targeting a specific producer
         for d in disruptions:
-            d["severity"] = float(value)
+            if target_agent_id == "__all__" or d.get("producer_label") == target_agent_id:
+                d["severity"] = float(value)
         return elements, disruptions
 
     key = param_info["key"]
