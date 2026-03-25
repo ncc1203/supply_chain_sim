@@ -87,9 +87,45 @@ def _normalize_edge_direction(source_id, target_id):
 
 # ── Sidebar rendering helpers ────────────────────────────────────────────────
 
+def _hidden_placeholders(**overrides):
+    """Return hidden inputs for ALL sidebar IDs.
+
+    Every sidebar must contain every ID that save_sidebar declares as a State,
+    otherwise Dash throws 'nonexistent object' errors.  Each render helper
+    calls this with the IDs it *does* display so those are excluded.
+    """
+    defaults = {
+        "sidebar-name": "",
+        "sidebar-d": 0,
+        "sidebar-dstd": 0,
+        "sidebar-ss": 0,
+        "sidebar-m": 0,
+        "sidebar-l": 0,
+        "sidebar-pl": 0,
+    }
+    dropdown_defaults = {
+        "sidebar-order-policy": "",
+        "sidebar-alloc-policy": "",
+        "sidebar-prod-policy": "",
+    }
+    children = []
+    for id_, val in defaults.items():
+        if id_ not in overrides:
+            children.append(dcc.Input(id=id_, value=val, type="hidden"))
+    for id_, val in dropdown_defaults.items():
+        if id_ not in overrides:
+            children.append(dcc.Dropdown(id=id_, value=val, style={"display": "none"}))
+    return html.Div(children, style={"display": "none"})
+
+
 def _render_consumer_sidebar(data):
     """Render sidebar form for a Consumer node."""
-    return [
+    # IDs this sidebar provides visibly:
+    visible_ids = {"sidebar-name", "sidebar-d", "sidebar-dstd", "sidebar-ss",
+                   "sidebar-order-policy"}
+    # key=node_id forces React to fully remount when switching between nodes,
+    # preventing stale input values from a previously selected node.
+    return html.Div(key=data.get("id", ""), children=[
         html.H5(f"Health Center: {data.get('label', '')}"),
         html.Hr(),
         html.Label("Name"),
@@ -110,12 +146,15 @@ def _render_consumer_sidebar(data):
         ),
         html.Br(),
         html.Button("Save", id="btn-save-sidebar", n_clicks=0, className="toolbar-btn"),
-    ]
+        _hidden_placeholders(**{k: True for k in visible_ids}),
+    ])
 
 
 def _render_transhipper_sidebar(data):
     """Render sidebar form for a Transhipper node."""
-    return [
+    visible_ids = {"sidebar-name", "sidebar-ss", "sidebar-l",
+                   "sidebar-order-policy", "sidebar-alloc-policy"}
+    return html.Div(key=data.get("id", ""), children=[
         html.H5(f"Distributor: {data.get('label', '')}"),
         html.Hr(),
         html.Label("Name"),
@@ -142,12 +181,15 @@ def _render_transhipper_sidebar(data):
         ),
         html.Br(),
         html.Button("Save", id="btn-save-sidebar", n_clicks=0, className="toolbar-btn"),
-    ]
+        _hidden_placeholders(**{k: True for k in visible_ids}),
+    ])
 
 
 def _render_producer_sidebar(data):
     """Render sidebar form for a Producer node."""
-    return [
+    visible_ids = {"sidebar-name", "sidebar-ss", "sidebar-m", "sidebar-l",
+                   "sidebar-pl", "sidebar-prod-policy", "sidebar-alloc-policy"}
+    return html.Div(key=data.get("id", ""), children=[
         html.H5(f"Manufacturer: {data.get('label', '')}"),
         html.Hr(),
         html.Label("Name"),
@@ -178,7 +220,8 @@ def _render_producer_sidebar(data):
         ),
         html.Br(),
         html.Button("Save", id="btn-save-sidebar", n_clicks=0, className="toolbar-btn"),
-    ]
+        _hidden_placeholders(**{k: True for k in visible_ids}),
+    ])
 
 
 # ── Register all callbacks ───────────────────────────────────────────────────
@@ -322,14 +365,25 @@ def register_network_callbacks(app):
 
         # ── If NOT in connect mode → show sidebar ───────────────────────
         if not connect_mode:
-            agent_type = tap_data.get("agent_type")
+            # Look up current node data from elements (not stale tapNodeData)
+            # This prevents the sidebar from reverting after a save, because
+            # tapNodeData may hold old values while elements has the latest.
+            node_id = tap_data["id"]
+            node_data = tap_data  # fallback
+            for el in elements:
+                d = el.get("data", {})
+                if d.get("id") == node_id:
+                    node_data = d
+                    break
+
+            agent_type = node_data.get("agent_type")
             sidebar = html.P("Unknown agent type.")
             if agent_type == "consumer":
-                sidebar = _render_consumer_sidebar(tap_data)
+                sidebar = _render_consumer_sidebar(node_data)
             elif agent_type == "transhipper":
-                sidebar = _render_transhipper_sidebar(tap_data)
+                sidebar = _render_transhipper_sidebar(node_data)
             elif agent_type == "producer":
-                sidebar = _render_producer_sidebar(tap_data)
+                sidebar = _render_producer_sidebar(node_data)
             return no_update, no_update, no_update, sidebar
 
         # ── Connect mode: two-click edge creation ───────────────────────
