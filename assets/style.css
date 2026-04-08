@@ -5,6 +5,7 @@
     --light-gray: #E1E1E1; /* 35% white-ish */
     --red: #C8102E;
     --gold: #C8A978;
+    --blue: #6C8EBF;
 }
 
 /* Global */
@@ -17,7 +18,7 @@ body{
 }
 
 .app-container{
-    max-width: 1100px;
+    max-width: 1400px;
     margin: 24px auto;
     padding: 16px;
 }
@@ -30,7 +31,7 @@ body{
     border-radius: 10px;
     box-shadow: 0 6px 18px rgba(0,0,0,0.08);
     border: 2px solid rgba(0,0,0,0.06);
-    border-left: 6px solid var(--gold); /* gold accent */
+    border-left: 6px solid var(--gold);
 }
 .title-section h1{
     margin: 0 0 8px 0;
@@ -41,92 +42,205 @@ body{
     margin-top: 6px;
 }
 
-/* Setup and results sections */
-.setup-section, .results-section{
+/* ── Tabs ───────────────────────────────────────────────────────────────── */
+.tab-content{
     margin-top: 18px;
-    /* subtle red-tinted background for main divs */
-    background: linear-gradient(180deg, rgba(200,16,46,0.03), var(--white));
-    border-radius: 10px;
-    padding: 18px;
-    box-shadow: 0 6px 18px rgba(200,16,46,0.04);
-    border-left: 6px solid var(--red); /* red for main divs */
 }
 
-.setup-section h3, .results-section h3{
-    margin-top: 0;
-    color: var(--black); /* heading color uses red to denote main areas */
-}
-
-.config-area{
-    width: 100%;
-    min-height: 220px;
-    font-family: monospace;
-    margin-top: 8px;
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid rgba(0,0,0,0.08);
-}
-
-/* Agent columns */
-.agent-columns{
+/* ── Toolbar ────────────────────────────────────────────────────────────── */
+.toolbar{
     display: flex;
-    gap: 16px;
-    margin-top: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 0;
+    align-items: center;
 }
-.agent-column{
-    flex: 1 1 0;
-    background: linear-gradient(180deg, rgba(200,16,46,0.02), var(--white));
-    border-radius: 8px;
-    padding: 12px;
-    min-height: 180px;
-    border: 1px solid rgba(0,0,0,0.04);
-}
-.agent-column-title{
-    margin: 6px 0 12px 0;
-    color: var(--red);
-}
-.agent-icon{
-    width: 48px;
-    display: block;
-    margin: 0 auto 6px auto;
-}
-.agent-card{
-    margin-bottom: 10px;
+.toolbar-btn{
+    padding: 8px 14px;
+    border: 1px solid rgba(0,0,0,0.12);
     border-radius: 6px;
-    padding: 8px;
-    background: #fff;
-    border: 1px solid rgba(0,0,0,0.04);
-}
-.agent-card summary{
     cursor: pointer;
     font-weight: 600;
+    font-size: 13px;
+    background: var(--white);
+    transition: all 0.15s;
 }
-.agent-card-body{
-    margin-top: 8px;
+.toolbar-btn:hover{
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
-.add-button{
-    margin-top: 8px;
-    background: transparent;
-    border: 1px dashed rgba(0,0,0,0.06);
-    padding: 8px 10px;
-    border-radius: 6px;
-    cursor: pointer;
+.producer-btn{ border-left: 4px solid var(--red); }
+.transhipper-btn{ border-left: 4px solid var(--gold); }
+.consumer-btn{ border-left: 4px solid var(--blue); }
+.connect-btn{ border-left: 4px solid #4CAF50; }
+.connect-active{
+    background: #4CAF50 !important;
+    color: white !important;
+    border-color: #388E3C !important;
 }
-.save-button{ background-color: var(--gold); color: var(--black); border:none; padding:6px 10px; border-radius:4px; margin-right:6px }
-.delete-button{ background-color: transparent; border:1px solid rgba(0,0,0,0.06); padding:6px 10px; border-radius:4px }
+.delete-btn{ border-left: 4px solid #E53935; color: #E53935; }
+.clear-btn{ border-left: 4px solid #999; color: #666; }
 
-/* Buttons */
-button.run-button, button#run-button{
+/* ── Network Builder layout ─────────────────────────────────────────────── */
+.network-tab{
+    margin-top: 12px;
+}
+.network-main{
+    display: flex;
+    gap: 16px;
+    flex-wrap: nowrap;
+}
+.canvas-container{
+    flex: 1 1 0;
+    min-width: 0;
+    background: var(--white);
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.06);
+    min-height: 500px;
+}
+
+/* ── Legend ──────────────────────────────────────────────────────────────── */
+.legend{
+    display: flex;
+    gap: 6px;
+    padding: 6px 0 10px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    margin-bottom: 8px;
+}
+
+/* ── Sidebar ────────────────────────────────────────────────────────────── */
+.sidebar{
+    flex: 0 0 280px;
+    width: 280px;
+    background: var(--white);
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.06);
+    max-height: 650px;
+    overflow-y: auto;
+}
+.sidebar-title{
+    margin: 0 0 12px 0;
+    color: var(--red);
+}
+.sidebar-placeholder{
+    color: #999;
+    font-style: italic;
+    font-size: 13px;
+}
+.sidebar label{
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+    margin-top: 10px;
+    margin-bottom: 3px;
+}
+.sidebar-input{
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid rgba(0,0,0,0.12);
+    border-radius: 4px;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+.sidebar-dropdown{
+    font-size: 13px;
+}
+
+/* ── Status bar ─────────────────────────────────────────────────────────── */
+.status-bar{
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, rgba(200,169,120,0.06), rgba(0,0,0,0.01));
+    border-left: 4px solid var(--gold);
+    font-size: 13px;
+    min-height: 20px;
+}
+
+/* ── Simulation Config tab ──────────────────────────────────────────────── */
+.sim-config-tab{
+    margin-top: 12px;
+    background: var(--white);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+.config-section{
+    margin-bottom: 20px;
+}
+.config-section h4{
+    margin: 0 0 10px 0;
+    color: var(--red);
+}
+.config-row{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.config-input{
+    padding: 6px 8px;
+    border: 1px solid rgba(0,0,0,0.12);
+    border-radius: 4px;
+    font-size: 14px;
+    width: 120px;
+}
+
+/* ── Results tab ────────────────────────────────────────────────────────── */
+.results-tab{
+    margin-top: 12px;
+    background: var(--white);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+.results-tab h4{
+    margin: 0 0 12px 0;
+    color: var(--red);
+}
+
+/* ── Chart sections ─────────────────────────────────────────────────────── */
+.chart-section{
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #fafafa;
+    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,0.04);
+}
+.chart-section h5{
+    margin: 0 0 4px 0;
+    color: var(--black);
+    font-size: 14px;
+}
+
+/* ── Disruption rows ────────────────────────────────────────────────────── */
+.disruption-row label{
+    font-size: 11px;
+    font-weight: 600;
+    color: #555;
+}
+
+/* ── Buttons (run / download) ───────────────────────────────────────────── */
+button.run-button, button#btn-run-simulation{
     background-color: var(--red);
     color: var(--white);
     border: none;
-    padding: 8px 14px;
+    padding: 10px 20px;
     border-radius: 6px;
     cursor: pointer;
     font-weight: 600;
+    font-size: 15px;
+    transition: all 0.15s;
+}
+button.run-button:hover{
+    background-color: #A00D24;
+    box-shadow: 0 3px 12px rgba(200,16,46,0.25);
 }
 
-button.download-button, button#download-button{
+button.download-button, button#btn-download-results{
     background-color: var(--gold);
     color: var(--black);
     border: none;
@@ -137,31 +251,9 @@ button.download-button, button#download-button{
     box-shadow: 0 2px 8px rgba(200,169,120,0.15);
 }
 
-button#use-defaults{
-    background: transparent;
-    border: 1px dashed rgba(0,0,0,0.08);
-    padding: 6px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-/* Status and graph */
-.run-status{
-    white-space: pre-wrap;
-    margin-bottom: 12px;
-    padding: 10px;
-    border-radius: 6px;
-    /* gold accent background for status */
-    background: linear-gradient(90deg, rgba(200,169,120,0.06), rgba(0,0,0,0.01));
-    border-left: 4px solid var(--gold);
-}
-
-.inventory-graph{
-    min-height: 320px;
-}
-
-/* Responsive */
+/* ── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 800px){
     .app-container{ padding: 12px; }
-    .setup-section, .results-section{ padding: 12px; }
+    .network-main{ flex-direction: column; }
+    .sidebar{ width: 100%; min-width: 100%; }
 }
